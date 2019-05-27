@@ -18,6 +18,9 @@ bool DataManager::LoadEquationData()
 	}
 	else
 	{
+		Equations.clear();
+		Postfixs.clear();
+		EquationIndex = 0;
 		//定義讀取檔案字串暫存變數
 		std::string tempSring;
 
@@ -58,26 +61,57 @@ std::vector<std::string> DataManager::InfixToPost(std::string str)
 	std::vector<std::string> result;
 	for (unsigned int i = 0; i < str.length(); ++i)
 	{
-		if (str[i] == '+' || str[i] == '-' || str[i] == '*' || str[i] == '^')
+		if (str[i] == '+' || str[i] == '-' || str[i] == '*' || str[i] == '/' || str[i] == '^')
 		{
 			if (op.empty())
 			{
-				std::string s(1, str[i]);
-				op.push(s);
+				if ((str[i] == '+' || str[i] == '-') && (i == 0 || (str[i - 1] == '(')))
+				{
+					// 正號為@ 負號為$
+					if (str[i] == '+')
+					{
+						op.push("@");
+					}
+					else if(str[i] == '-')
+					{
+						op.push("$");
+					}
+				}
+				else
+				{
+					std::string s(1, str[i]);
+					op.push(s);
+				}
 			}
 			else
 			{
 				if (str[i] == '+' || str[i] == '-')
 				{
-					while (op.size() > 0)
+					if (i == 0 || (str[i - 1] == '('))
 					{
-						result.push_back(op.top());
-						op.pop();
+						while ((op.top() == "@" || op.top() == "$") && op.top() != "(")
+						{
+							result.push_back(op.top());
+							op.pop();
+						}
+						if (str[i] == '+')
+							op.push("@");
+						else if(str[i] == '-')
+							op.push("$");
+						continue;
+					}
+					else
+					{
+						while (op.size() > 0 && (op.top() != "("))
+						{
+							result.push_back(op.top());
+							op.pop();
+						}
 					}
 				}
-				else if (str[i] == '*')
+				else if (str[i] == '*' || str[i] == '/')
 				{
-					while (op.top() == "*")
+					while (op.top() == "*" || op.top() == "/" || op.top() == "^" && op.top() != "(")
 					{
 						result.push_back(op.top());
 						op.pop();
@@ -85,7 +119,7 @@ std::vector<std::string> DataManager::InfixToPost(std::string str)
 				}
 				else if (str[i] == '^')
 				{
-					while (op.top() == "^" || IsTri(op.top()))
+					while (op.top() == "^" || IsTri(op.top()) && (op.top() != "("))
 					{
 						result.push_back(op.top());
 						op.pop();
@@ -95,6 +129,7 @@ std::vector<std::string> DataManager::InfixToPost(std::string str)
 				op.push(s);
 			}
 		}
+		// 三角函數
 		else if (str[i] == 's' && str[i + 1] == 'i' && str[i + 2] == 'n')
 		{
 			if (op.empty())
@@ -103,7 +138,7 @@ std::vector<std::string> DataManager::InfixToPost(std::string str)
 			}
 			else
 			{
-				while (op.top() == "^" || IsTri(op.top()))
+				while (op.top() == "^" || IsTri(op.top()) && op.top() != "(")
 				{
 					result.push_back(op.top());
 					op.pop();
@@ -120,7 +155,7 @@ std::vector<std::string> DataManager::InfixToPost(std::string str)
 			}
 			else
 			{
-				while (op.top() == "^" || IsTri(op.top()))
+				while (op.top() == "^" || IsTri(op.top()) && op.top() != "(")
 				{
 					result.push_back(op.top());
 					op.pop();
@@ -137,7 +172,7 @@ std::vector<std::string> DataManager::InfixToPost(std::string str)
 			}
 			else
 			{
-				while (op.top() == "^" || IsTri(op.top()))
+				while (op.top() == "^" || IsTri(op.top()) && op.top() != "(")
 				{
 					result.push_back(op.top());
 					op.pop();
@@ -154,7 +189,7 @@ std::vector<std::string> DataManager::InfixToPost(std::string str)
 			}
 			else
 			{
-				while (op.top() == "^" || IsTri(op.top()))
+				while (op.top() == "^" || IsTri(op.top()) && op.top() != "(")
 				{
 					result.push_back(op.top());
 					op.pop();
@@ -171,7 +206,7 @@ std::vector<std::string> DataManager::InfixToPost(std::string str)
 			}
 			else
 			{
-				while (op.top() == "^" || IsTri(op.top()))
+				while (op.top() == "^" || IsTri(op.top()) && op.top() != "(")
 				{
 					result.push_back(op.top());
 					op.pop();
@@ -188,7 +223,7 @@ std::vector<std::string> DataManager::InfixToPost(std::string str)
 			}
 			else
 			{
-				while (op.top() == "^" || IsTri(op.top()))
+				while (op.top() == "^" || IsTri(op.top()) && op.top() != "(")
 				{
 					result.push_back(op.top());
 					op.pop();
@@ -213,12 +248,8 @@ std::vector<std::string> DataManager::InfixToPost(std::string str)
 		else
 		{
 			std::string temp = std::string();
-			while (!(str[i] == '+' || str[i] == '-' || str[i] == '*' || str[i] == '^'))
+			while (str[i] != '+' && str[i] != '-' && str[i] != '*' && str[i] != '^' && str[i] != '(' && str[i] != ')')
 			{
-				if (str[i] == ')' || str[i] == '(')
-				{
-					break;
-				}
 				temp += str[i];
 				++i;
 				if (i >= str.length())
@@ -228,7 +259,7 @@ std::vector<std::string> DataManager::InfixToPost(std::string str)
 			result.push_back(temp);
 		}
 	}
-	while (op.size() > 0)
+	while (!op.empty())
 	{
 		result.push_back(op.top());
 		op.pop();

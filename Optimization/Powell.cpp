@@ -4,6 +4,122 @@
 #define IsX(x) (x == "X" || x == "x")
 #define IsY(y) (y == "Y" || y == "y")
 
+double Powell::FunctionValue(double x, double y, int set)
+{
+	double result = 0, current = 0;
+	std::vector<std::string> Equation;
+	if (set == 1)
+	{
+		Equation = GEquation;
+	}
+	else
+	{
+		Equation = posteq[EquationIndex];
+	}
+	std::stack<double> op;
+	for (unsigned int i = 0; i < Equation.size(); ++i)
+	{
+		if (Equation[i] == "+")
+		{
+			current = op.top();
+			op.pop();
+			op.top() += current;
+		}
+		else if (Equation[i] == "-")
+		{
+			current = op.top();
+			op.pop();
+			op.top() -= current;
+		}
+		else if (Equation[i] == "*")
+		{
+			current = op.top();
+			op.pop();
+			op.top() *= current;
+		}
+		else if (Equation[i] == "/")
+		{
+			current = op.top();
+			op.pop();
+			op.top() /= current;
+		}
+		else if (Equation[i] == "^")
+		{
+			current = op.top();
+			op.pop();
+			op.top() = powl(op.top(), current);
+		}
+		else if (Equation[i] == "@")
+		{
+			continue;
+		}
+		else if (Equation[i] == "$")
+		{
+			op.top() *= -1;
+		}
+		else if (IsTri(Equation[i]))
+		{
+			if (Equation[i] == "sin")
+				op.top() = sin(op.top());
+			else if (Equation[i] == "cos")
+				op.top() = cos(op.top());
+			else if (Equation[i] == "tan")
+				op.top() = tan(op.top());
+			else if (Equation[i] == "sec")
+				op.top() = 1 / cos(op.top());
+			else if (Equation[i] == "csc")
+				op.top() = 1 / sin(op.top());
+			else if (Equation[i] == "cot")
+				op.top() = 1 / tan(op.top());
+		}
+		else
+		{
+			if (Equation[i] == "x")
+				op.push(x);
+			else if (Equation[i] == "y")
+				op.push(y);
+			else
+				op.push(std::stod(Equation[i]));
+		}
+	}
+	result = op.top();
+	return result;
+}
+
+std::string Powell::ChangeEq(std::string x, std::string y)
+{
+	std::string ori = original[EquationIndex];
+	std::string result;
+	x += ')';
+	y += ')';
+	for (unsigned int i = 0; i < x.length(); ++i)
+	{
+		if (x[i] == 'a')
+			x[i] = 'x';
+	}
+	for (unsigned int i = 0; i < y.length(); ++i)
+	{
+		if (y[i] == 'a')
+			y[i] = 'x';
+	}
+	for (unsigned int i = 0; i < ori.length(); ++i)
+	{
+		if (ori[i] == 'x')
+		{
+			result += "(";
+			result += x;
+		}
+		else if (ori[i] == 'y')
+		{
+			result += "(";
+			result += y;
+		}
+		else
+			result += ori[i];
+	}
+	return result;
+}
+
 double Powell::GoldenSearch(double a, double b, double c)
 {
 	double x = 0;
@@ -15,11 +131,11 @@ double Powell::GoldenSearch(double a, double b, double c)
 	{
 		x = b - resphi * (b - a);
 	}
-	if (abs(c - a) < 0.0001 * (abs(b) + abs(x)))
+	if (abs(c - a) < 0.001 * (abs(b) + abs(x)))
 	{
-		return (c - a) / 2;
+		return (c + a) / 2;
 	}
-	if (FunctionValue(x, 0) < FunctionValue(b, 0))
+	if (FunctionValue(x, 0, 1) < FunctionValue(b, 0, 1))
 	{
 		if (c - b > b - a)
 		{
@@ -41,107 +157,4 @@ double Powell::GoldenSearch(double a, double b, double c)
 			return GoldenSearch(x, b, c);
 		}
 	}
-}
-
-double Powell::FunctionValue(double x, double y)
-{
-	double result, current;
-	std::stack<std::string> op;
-	for (unsigned int i = 0; i < posteq[EquationIndex].size(); ++i)
-	{
-		int operation = 0;
-		if (posteq[EquationIndex][i] == "+")
-			operation = 1;
-		else if (posteq[EquationIndex][i] == "-")
-			operation = 2;
-		else if (posteq[EquationIndex][i] == "*")
-			operation = 3;
-		else if (posteq[EquationIndex][i] == "^")
-			operation = 4;
-		// àㄧ计
-		else if(IsTri(posteq[EquationIndex][i]))
-		{
-			operation = 5;
-		}
-		else
-		{
-			op.push(posteq[EquationIndex][i]);
-			continue;
-		}
-		if (operation != 5)
-		{
-			// 计
-			if (IsVar(op.top()))
-			{
-				// 跑计
-				if (IsX(op.top()))
-				{
-					result = x;
-				}
-				else if (IsY(op.top()))
-				{
-					result = y;
-				}
-			}
-			else
-			{
-				result = std::stof(op.top());
-			}
-			op.pop();
-		}
-		// 计
-		if (IsVar(op.top()))
-		{
-			// 跑计
-			if (IsX(op.top()))
-			{
-				current = x;
-			}
-			else if (IsY(op.top()))
-			{
-				current = y;
-			}
-		}
-		else
-		{
-			current = std::stof(op.top());
-		}
-		op.pop();
-		switch (operation)
-		{
-		case 1:
-			current += result;
-			break;
-		case 2:
-			current -= result;
-			break;
-		case 3:
-			current *= result;
-			break;
-		case 4:
-			current = pow(current, result);
-			break;
-		case 5:
-			if (posteq[EquationIndex][i] == "sin")
-				current = sin(current);
-			else if (posteq[EquationIndex][i] == "cos")
-				current = cos(current);
-			else if (posteq[EquationIndex][i] == "tan")
-				current = tan(current);
-			else if (posteq[EquationIndex][i] == "sec")
-				current = 1 / cos(current);
-			else if (posteq[EquationIndex][i] == "csc")
-				current = 1 / sin(current);
-			else if (posteq[EquationIndex][i] == "cot")
-				current = 1 / tan(current);
-			break;
-		default:
-			break;
-		}
-		std::ostringstream ss;
-		ss << current;
-		op.push(ss.str());
-	}
-	result = current;
-	return result;
 }
